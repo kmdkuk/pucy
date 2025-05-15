@@ -21,10 +21,10 @@ ifndef CGO_LDFLAGS
 	export CGO_LDFLAGS := $(LDFLAGS)
 endif
 
-GO_LDFLAGS := -X github.com/kmdkuk/goct/pkg/version.Revision=$(REVISION) $(GO_LDFLAGS)
-GO_LDFLAGS := -X github.com/kmdkuk/goct/pkg/version.BuildDate=$(BUILD_DATE) $(GO_LDFLAGS)
+GO_LDFLAGS := -X github.com/kmdkuk/pucy/internal/version.Revision=$(REVISION) $(GO_LDFLAGS)
+GO_LDFLAGS := -X github.com/kmdkuk/pucy/internal/version.BuildDate=$(BUILD_DATE) $(GO_LDFLAGS)
 DEV_LDFLAGS := $(GO_LDFLAGS)
-GO_LDFLAGS := -X github.com/kmdkuk/goct/pkg/version.Version=$(VERSION) $(GO_LDFLAGS)
+GO_LDFLAGS := -X github.com/kmdkuk/pucy/internal/version.Version=$(VERSION) $(GO_LDFLAGS)
 
 # Tools path
 BIN_DIR := $(CURDIR)/bin
