@@ -7,7 +7,7 @@ before:
     - go mod tidy
 builds:
   - main: .
-    binary: goct
+    binary: pucy
     ldflags:
       - -s -w
       - -X github.com/kmdkuk/pucy/internal/version.Version={{.Version}}
