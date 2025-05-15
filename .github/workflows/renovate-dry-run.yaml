@@ -1,0 +1,27 @@
+name: Renovate Dry Run
+
+on:
+  push:
+    paths:
+      - "renovate.json"
+
+jobs:
+  renovate-dry-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Renovate CLI
+        run: npm install -g renovate
+
+      - name: Run Renovate Dry Run
+        run: |
+          renovate-config-validator renovate.json
+          RENOVATE_CONFIG_FILE=renovate.json renovate --dry-run --token ${{ secrets.GITHUB_TOKEN }} ${{ github.repository }}
