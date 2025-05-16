@@ -49,16 +49,14 @@ to quickly create a Cobra application.`,
 		offset := 0 // scroll offset
 
 		// Helper to get filtered lines and their original indices
-		getFiltered := func() ([]string, []int) {
+		getFiltered := func() []string {
 			var filtered []string
-			var idxs []int
-			for i, line := range lines {
+			for _, line := range lines {
 				if keyword == "" || strings.Contains(line, keyword) {
 					filtered = append(filtered, line)
-					idxs = append(idxs, i)
 				}
 			}
-			return filtered, idxs
+			return filtered
 		}
 
 		draw := func() {
@@ -66,7 +64,7 @@ to quickly create a Cobra application.`,
 			width, height := screen.Size()
 			// 1 line for QUERY>
 			maxLines := height - 1
-			filtered, _ := getFiltered()
+			filtered := getFiltered()
 
 			// Adjust offset if selected is out of visible range
 			if selected < offset {
@@ -84,9 +82,7 @@ to quickly create a Cobra application.`,
 
 			// Draw info at right top (add scroll info)
 			scrollInfo := fmt.Sprintf("Total: %d  Filtered: %d  Scroll: %d/%d", len(lines), len(filtered), offset+1, len(filtered))
-			putStr(screen, width-len(scrollInfo)-1, 0, scrollInfo) // -1 for margin
-
-			// Draw filtered lines with selection
+			putStr(screen, max(0, width-len(scrollInfo)-1), 0, scrollInfo) // -1 for margin
 			y := 1
 			for i := offset; i < len(filtered) && y < height; i++ {
 				style := tcell.StyleDefault
@@ -114,7 +110,7 @@ to quickly create a Cobra application.`,
 						offset = 0
 					}
 				case tcell.KeyEnter:
-					filtered, _ := getFiltered()
+					filtered := getFiltered()
 					if len(filtered) > 0 && selected < len(filtered) {
 						screen.Fini() // Finish tcell screen before printing to stdout
 						fmt.Println(filtered[selected])
@@ -125,7 +121,7 @@ to quickly create a Cobra application.`,
 						selected--
 					}
 				case tcell.KeyDown:
-					filtered, _ := getFiltered()
+					filtered := getFiltered()
 					if selected < len(filtered)-1 {
 						selected++
 					}
@@ -190,14 +186,22 @@ func initConfig() {
 }
 
 func putStr(s tcell.Screen, x, y int, str string) {
+	screenWidth, screenHeight := s.Size()
 	for i, r := range str {
+		if x+i >= screenWidth || y >= screenHeight {
+			break // Stop writing if we exceed screen boundaries
+		}
 		s.SetContent(x+i, y, r, nil, tcell.StyleDefault)
 	}
 }
 
 // Add this helper function for styled output
 func putStrStyled(s tcell.Screen, x, y int, str string, style tcell.Style) {
+	screenWidth, screenHeight := s.Size()
 	for i, r := range str {
+		if x+i >= screenWidth || y >= screenHeight {
+			break // Stop writing if we exceed screen boundaries
+		}
 		s.SetContent(x+i, y, r, nil, style)
 	}
 }
