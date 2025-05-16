@@ -4,9 +4,12 @@ Copyright © 2025 kmdkuk
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -25,7 +28,118 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		var lines []string
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			lines = append(lines, scanner.Text())
+		}
+
+		screen, err := tcell.NewScreen()
+		if err != nil {
+			panic(err)
+		}
+		if err := screen.Init(); err != nil {
+			panic(err)
+		}
+		defer screen.Fini()
+
+		keyword := ""
+		selected := 0
+		offset := 0 // scroll offset
+
+		// Helper to get filtered lines and their original indices
+		getFiltered := func() ([]string, []int) {
+			var filtered []string
+			var idxs []int
+			for i, line := range lines {
+				if keyword == "" || strings.Contains(line, keyword) {
+					filtered = append(filtered, line)
+					idxs = append(idxs, i)
+				}
+			}
+			return filtered, idxs
+		}
+
+		draw := func() {
+			screen.Clear()
+			width, height := screen.Size()
+			// 1 line for QUERY>
+			maxLines := height - 1
+			filtered, _ := getFiltered()
+
+			// Adjust offset if selected is out of visible range
+			if selected < offset {
+				offset = selected
+			}
+			if selected >= offset+maxLines {
+				offset = selected - maxLines + 1
+			}
+			if offset < 0 {
+				offset = 0
+			}
+
+			// Draw search bar
+			putStr(screen, 0, 0, "QUERY> "+keyword)
+
+			// Draw info at right top (add scroll info)
+			scrollInfo := fmt.Sprintf("Total: %d  Filtered: %d  Scroll: %d/%d", len(lines), len(filtered), offset+1, len(filtered))
+			putStr(screen, width-len(scrollInfo)-1, 0, scrollInfo) // -1 for margin
+
+			// Draw filtered lines with selection
+			y := 1
+			for i := offset; i < len(filtered) && y < height; i++ {
+				style := tcell.StyleDefault
+				if i == selected {
+					style = style.Background(tcell.ColorBlue).Foreground(tcell.ColorWhite)
+				}
+				putStrStyled(screen, 0, y, filtered[i], style)
+				y++
+			}
+			screen.Show()
+		}
+
+		draw()
+		for {
+			ev := screen.PollEvent()
+			switch tev := ev.(type) {
+			case *tcell.EventKey:
+				switch tev.Key() {
+				case tcell.KeyEsc, tcell.KeyCtrlC:
+					return
+				case tcell.KeyBackspace, tcell.KeyBackspace2:
+					if len(keyword) > 0 {
+						keyword = keyword[:len(keyword)-1]
+						selected = 0
+						offset = 0
+					}
+				case tcell.KeyEnter:
+					filtered, _ := getFiltered()
+					if len(filtered) > 0 && selected < len(filtered) {
+						screen.Fini() // Finish tcell screen before printing to stdout
+						fmt.Println(filtered[selected])
+					}
+					return
+				case tcell.KeyUp:
+					if selected > 0 {
+						selected--
+					}
+				case tcell.KeyDown:
+					filtered, _ := getFiltered()
+					if selected < len(filtered)-1 {
+						selected++
+					}
+				default:
+					if tev.Rune() != 0 {
+						keyword += string(tev.Rune())
+						selected = 0
+						offset = 0
+					}
+				}
+				draw()
+			}
+		}
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -72,5 +186,18 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	}
+}
+
+func putStr(s tcell.Screen, x, y int, str string) {
+	for i, r := range str {
+		s.SetContent(x+i, y, r, nil, tcell.StyleDefault)
+	}
+}
+
+// Add this helper function for styled output
+func putStrStyled(s tcell.Screen, x, y int, str string, style tcell.Style) {
+	for i, r := range str {
+		s.SetContent(x+i, y, r, nil, style)
 	}
 }
