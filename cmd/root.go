@@ -48,14 +48,21 @@ to quickly create a Cobra application.`,
 		selected := 0
 		offset := 0 // scroll offset
 
+		// Cache for filtered results by keyword
+		filterCache := make(map[string][]string)
+
 		// Helper to get filtered lines and their original indices
 		getFiltered := func() []string {
+			if filtered, ok := filterCache[keyword]; ok {
+				return filtered
+			}
 			var filtered []string
 			for _, line := range lines {
 				if keyword == "" || strings.Contains(line, keyword) {
 					filtered = append(filtered, line)
 				}
 			}
+			filterCache[keyword] = filtered
 			return filtered
 		}
 
@@ -108,6 +115,7 @@ to quickly create a Cobra application.`,
 						keyword = keyword[:len(keyword)-1]
 						selected = 0
 						offset = 0
+						// Optionally, you can clear the cache here if you want to limit memory usage
 					}
 				case tcell.KeyEnter:
 					filtered := getFiltered()
@@ -130,6 +138,7 @@ to quickly create a Cobra application.`,
 						keyword += string(tev.Rune())
 						selected = 0
 						offset = 0
+						// Optionally, you can clear the cache here if you want to limit memory usage
 					}
 				}
 				draw()
