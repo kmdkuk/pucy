@@ -28,7 +28,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		var lines []string
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
@@ -37,10 +37,10 @@ to quickly create a Cobra application.`,
 
 		screen, err := tcell.NewScreen()
 		if err != nil {
-			panic(err)
+			return err
 		}
 		if err := screen.Init(); err != nil {
-			panic(err)
+			return err
 		}
 		defer screen.Fini()
 
@@ -69,7 +69,6 @@ to quickly create a Cobra application.`,
 		draw := func() {
 			screen.Clear()
 			width, height := screen.Size()
-			// 1 line for QUERY>
 			maxLines := height - 1
 			filtered := getFiltered()
 
@@ -85,18 +84,18 @@ to quickly create a Cobra application.`,
 			}
 
 			// Draw search bar
-			putStr(screen, 0, 0, "QUERY> "+keyword)
+			putStr(screen, 0, 0, "QUERY> "+keyword, tcell.StyleDefault)
 
 			// Draw info at right top (add scroll info)
 			scrollInfo := fmt.Sprintf("Total: %d  Filtered: %d  Scroll: %d/%d", len(lines), len(filtered), offset+1, len(filtered))
-			putStr(screen, max(0, width-len(scrollInfo)-1), 0, scrollInfo) // -1 for margin
+			putStr(screen, max(0, width-len(scrollInfo)-1), 0, scrollInfo, tcell.StyleDefault)
 			y := 1
 			for i := offset; i < len(filtered) && y < height; i++ {
 				style := tcell.StyleDefault
 				if i == selected {
 					style = style.Background(tcell.ColorBlue).Foreground(tcell.ColorWhite)
 				}
-				putStrStyled(screen, 0, y, filtered[i], style)
+				putStrHighlight(screen, 0, y, filtered[i], keyword, style)
 				y++
 			}
 			screen.Show()
@@ -109,7 +108,7 @@ to quickly create a Cobra application.`,
 			case *tcell.EventKey:
 				switch tev.Key() {
 				case tcell.KeyEsc, tcell.KeyCtrlC:
-					return
+					return nil
 				case tcell.KeyBackspace, tcell.KeyBackspace2:
 					if len(keyword) > 0 {
 						keyword = keyword[:len(keyword)-1]
@@ -123,7 +122,7 @@ to quickly create a Cobra application.`,
 						screen.Fini() // Finish tcell screen before printing to stdout
 						fmt.Println(filtered[selected])
 					}
-					return
+					return nil
 				case tcell.KeyUp:
 					if selected > 0 {
 						selected--
@@ -194,23 +193,50 @@ func initConfig() {
 	}
 }
 
-func putStr(s tcell.Screen, x, y int, str string) {
-	screenWidth, screenHeight := s.Size()
-	for i, r := range str {
-		if x+i >= screenWidth || y >= screenHeight {
-			break // Stop writing if we exceed screen boundaries
-		}
-		s.SetContent(x+i, y, r, nil, tcell.StyleDefault)
-	}
-}
-
-// Add this helper function for styled output
-func putStrStyled(s tcell.Screen, x, y int, str string, style tcell.Style) {
+func putStr(s tcell.Screen, x, y int, str string, style tcell.Style) {
 	screenWidth, screenHeight := s.Size()
 	for i, r := range str {
 		if x+i >= screenWidth || y >= screenHeight {
 			break // Stop writing if we exceed screen boundaries
 		}
 		s.SetContent(x+i, y, r, nil, style)
+	}
+}
+
+// Helper function to print a string with keyword highlighting
+func putStrHighlight(s tcell.Screen, x, y int, line, keyword string, style tcell.Style) {
+	if keyword == "" {
+		putStr(s, x, y, line, style)
+		return
+	}
+
+	runes := []rune(line)
+	keywordRunes := []rune(keyword)
+	lowerLine := strings.ToLower(string(runes))
+	lowerKeyword := strings.ToLower(string(keywordRunes))
+	i := 0
+	pos := 0
+	screenWidth, screenHeight := s.Size()
+	for pos < len(runes) {
+		if x+i >= screenWidth || y >= screenHeight {
+			break
+		}
+		// Use cached lowercased line and keyword for comparison
+		if pos+len(keywordRunes) <= len(runes) &&
+			lowerLine[pos:pos+len(keywordRunes)] == lowerKeyword {
+			// Highlight match in red
+			for _, kr := range runes[pos : pos+len(keywordRunes)] {
+				if x+i >= screenWidth {
+					break
+				}
+				s.SetContent(x+i, y, kr, nil, style.Foreground(tcell.ColorRed))
+				i++
+			}
+			pos += len(keywordRunes)
+			continue
+		}
+		s.SetContent(x+i, y, runes[pos], nil, style)
+		i++
+		pos++
 	}
 }
