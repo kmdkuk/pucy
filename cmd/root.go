@@ -28,7 +28,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		var lines []string
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
@@ -37,10 +37,10 @@ to quickly create a Cobra application.`,
 
 		screen, err := tcell.NewScreen()
 		if err != nil {
-			panic(err)
+			return err
 		}
 		if err := screen.Init(); err != nil {
-			panic(err)
+			return err
 		}
 		defer screen.Fini()
 
@@ -108,7 +108,7 @@ to quickly create a Cobra application.`,
 			case *tcell.EventKey:
 				switch tev.Key() {
 				case tcell.KeyEsc, tcell.KeyCtrlC:
-					return
+					return nil
 				case tcell.KeyBackspace, tcell.KeyBackspace2:
 					if len(keyword) > 0 {
 						keyword = keyword[:len(keyword)-1]
@@ -122,7 +122,7 @@ to quickly create a Cobra application.`,
 						screen.Fini() // Finish tcell screen before printing to stdout
 						fmt.Println(filtered[selected])
 					}
-					return
+					return nil
 				case tcell.KeyUp:
 					if selected > 0 {
 						selected--
@@ -219,6 +219,7 @@ func putStrHighlight(s tcell.Screen, x, y int, line, keyword string, style tcell
 
 	runes := []rune(line)
 	keywordRunes := []rune(keyword)
+	lowerLine := strings.ToLower(string(runes))
 	lowerKeyword := strings.ToLower(string(keywordRunes))
 	i := 0
 	pos := 0
@@ -226,9 +227,9 @@ func putStrHighlight(s tcell.Screen, x, y int, line, keyword string, style tcell
 		if x+i >= screenWidth || y >= screenHeight {
 			break
 		}
-		// Check if the substring at this position matches the keyword
+		// Use cached lowercased line and keyword for comparison
 		if pos+len(keywordRunes) <= len(runes) &&
-			strings.ToLower(string(runes[pos:pos+len(keywordRunes)])) == lowerKeyword {
+			lowerLine[pos:pos+len(keywordRunes)] == lowerKeyword {
 			// Highlight match in red
 			for _, kr := range runes[pos : pos+len(keywordRunes)] {
 				if x+i >= screenWidth {
