@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/kmdkuk/pucy/internal/matcher"
@@ -236,10 +235,4 @@ func putStrHighlight(s tcell.Screen, x, y int, line, keyword string, style tcell
 		i++
 		pos++
 	}
-}
-
-// Case-insensitive version of strings.Contains
-func containsIgnoreCase(s, substr string) bool {
-	// Convert both strings to lower case and use strings.Contains
-	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
