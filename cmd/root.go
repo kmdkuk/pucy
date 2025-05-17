@@ -84,11 +84,11 @@ to quickly create a Cobra application.`,
 			}
 
 			// Draw search bar
-			putStr(screen, 0, 0, "QUERY> "+keyword)
+			putStr(screen, 0, 0, "QUERY> "+keyword, tcell.StyleDefault)
 
 			// Draw info at right top (add scroll info)
 			scrollInfo := fmt.Sprintf("Total: %d  Filtered: %d  Scroll: %d/%d", len(lines), len(filtered), offset+1, len(filtered))
-			putStr(screen, max(0, width-len(scrollInfo)-1), 0, scrollInfo)
+			putStr(screen, max(0, width-len(scrollInfo)-1), 0, scrollInfo, tcell.StyleDefault)
 			y := 1
 			for i := offset; i < len(filtered) && y < height; i++ {
 				style := tcell.StyleDefault
@@ -193,27 +193,20 @@ func initConfig() {
 	}
 }
 
-func putStr(s tcell.Screen, x, y int, str string) {
+func putStr(s tcell.Screen, x, y int, str string, style tcell.Style) {
 	screenWidth, screenHeight := s.Size()
 	for i, r := range str {
 		if x+i >= screenWidth || y >= screenHeight {
 			break // Stop writing if we exceed screen boundaries
 		}
-		s.SetContent(x+i, y, r, nil, tcell.StyleDefault)
+		s.SetContent(x+i, y, r, nil, style)
 	}
 }
 
 // Helper function to print a string with keyword highlighting
 func putStrHighlight(s tcell.Screen, x, y int, line, keyword string, style tcell.Style) {
-	screenWidth, screenHeight := s.Size()
 	if keyword == "" {
-		// No highlight, print normally
-		for i, r := range line {
-			if x+i >= screenWidth || y >= screenHeight {
-				break
-			}
-			s.SetContent(x+i, y, r, nil, style)
-		}
+		putStr(s, x, y, line, style)
 		return
 	}
 
@@ -223,6 +216,7 @@ func putStrHighlight(s tcell.Screen, x, y int, line, keyword string, style tcell
 	lowerKeyword := strings.ToLower(string(keywordRunes))
 	i := 0
 	pos := 0
+	screenWidth, screenHeight := s.Size()
 	for pos < len(runes) {
 		if x+i >= screenWidth || y >= screenHeight {
 			break
