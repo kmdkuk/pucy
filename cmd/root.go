@@ -69,7 +69,6 @@ to quickly create a Cobra application.`,
 		draw := func() {
 			screen.Clear()
 			width, height := screen.Size()
-			// 1 line for QUERY>
 			maxLines := height - 1
 			filtered := getFiltered()
 
@@ -89,14 +88,14 @@ to quickly create a Cobra application.`,
 
 			// Draw info at right top (add scroll info)
 			scrollInfo := fmt.Sprintf("Total: %d  Filtered: %d  Scroll: %d/%d", len(lines), len(filtered), offset+1, len(filtered))
-			putStr(screen, max(0, width-len(scrollInfo)-1), 0, scrollInfo) // -1 for margin
+			putStr(screen, max(0, width-len(scrollInfo)-1), 0, scrollInfo)
 			y := 1
 			for i := offset; i < len(filtered) && y < height; i++ {
 				style := tcell.StyleDefault
 				if i == selected {
 					style = style.Background(tcell.ColorBlue).Foreground(tcell.ColorWhite)
 				}
-				putStrStyled(screen, 0, y, filtered[i], style)
+				putStrHighlight(screen, 0, y, filtered[i], keyword, style)
 				y++
 			}
 			screen.Show()
@@ -204,13 +203,45 @@ func putStr(s tcell.Screen, x, y int, str string) {
 	}
 }
 
-// Add this helper function for styled output
-func putStrStyled(s tcell.Screen, x, y int, str string, style tcell.Style) {
+// Helper function to print a string with keyword highlighting
+func putStrHighlight(s tcell.Screen, x, y int, line, keyword string, style tcell.Style) {
 	screenWidth, screenHeight := s.Size()
-	for i, r := range str {
-		if x+i >= screenWidth || y >= screenHeight {
-			break // Stop writing if we exceed screen boundaries
+	if keyword == "" {
+		// No highlight, print normally
+		for i, r := range line {
+			if x+i >= screenWidth || y >= screenHeight {
+				break
+			}
+			s.SetContent(x+i, y, r, nil, style)
 		}
-		s.SetContent(x+i, y, r, nil, style)
+		return
+	}
+
+	runes := []rune(line)
+	keywordRunes := []rune(keyword)
+	lowerKeyword := strings.ToLower(string(keywordRunes))
+	i := 0
+	pos := 0
+	for pos < len(runes) {
+		if x+i >= screenWidth || y >= screenHeight {
+			break
+		}
+		// Check if the substring at this position matches the keyword
+		if pos+len(keywordRunes) <= len(runes) &&
+			strings.ToLower(string(runes[pos:pos+len(keywordRunes)])) == lowerKeyword {
+			// Highlight match in red
+			for _, kr := range runes[pos : pos+len(keywordRunes)] {
+				if x+i >= screenWidth {
+					break
+				}
+				s.SetContent(x+i, y, kr, nil, style.Foreground(tcell.ColorRed))
+				i++
+			}
+			pos += len(keywordRunes)
+			continue
+		}
+		s.SetContent(x+i, y, runes[pos], nil, style)
+		i++
+		pos++
 	}
 }
