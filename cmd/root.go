@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/kmdkuk/pucy/internal/matcher"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -58,7 +59,7 @@ to quickly create a Cobra application.`,
 			}
 			var filtered []string
 			for _, line := range lines {
-				if keyword == "" || strings.Contains(line, keyword) {
+				if keyword == "" || containsIgnoreCase(line, keyword) {
 					filtered = append(filtered, line)
 				}
 			}
@@ -211,32 +212,26 @@ func putStrHighlight(s tcell.Screen, x, y int, line, keyword string, style tcell
 	}
 
 	runes := []rune(line)
-	keywordRunes := []rune(keyword)
-	lowerLine := strings.ToLower(string(runes))
-	lowerKeyword := strings.ToLower(string(keywordRunes))
+	matcher := matcher.NewMatcher()
+	matches := matcher.Match(line, keyword)
+	if len(matches) == 0 {
+		return
+	}
 	i := 0
 	pos := 0
-	screenWidth, screenHeight := s.Size()
 	for pos < len(runes) {
-		if x+i >= screenWidth || y >= screenHeight {
-			break
+		if matches.IsMatch(pos) {
+			s.SetContent(x+i, y, runes[pos], nil, style.Foreground(tcell.ColorRed))
+		} else {
+			s.SetContent(x+i, y, runes[pos], nil, style)
 		}
-		// Use cached lowercased line and keyword for comparison
-		if pos+len(keywordRunes) <= len(runes) &&
-			lowerLine[pos:pos+len(keywordRunes)] == lowerKeyword {
-			// Highlight match in red
-			for _, kr := range runes[pos : pos+len(keywordRunes)] {
-				if x+i >= screenWidth {
-					break
-				}
-				s.SetContent(x+i, y, kr, nil, style.Foreground(tcell.ColorRed))
-				i++
-			}
-			pos += len(keywordRunes)
-			continue
-		}
-		s.SetContent(x+i, y, runes[pos], nil, style)
 		i++
 		pos++
 	}
+}
+
+// Case-insensitive version of strings.Contains
+func containsIgnoreCase(s, substr string) bool {
+	// Convert both strings to lower case and use strings.Contains
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
