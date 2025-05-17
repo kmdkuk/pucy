@@ -7,7 +7,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
+	"sort"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/kmdkuk/pucy/internal/matcher"
@@ -51,6 +51,7 @@ to quickly create a Cobra application.`,
 
 		// Cache for filtered results by keyword
 		filterCache := make(map[string][]string)
+		m := matcher.NewMatcher()
 
 		// Helper to get filtered lines and their original indices
 		getFiltered := func() []string {
@@ -58,11 +59,17 @@ to quickly create a Cobra application.`,
 				return filtered
 			}
 			var filtered []string
+			linesMatchs := make(map[string]matcher.Matches, len(lines))
 			for _, line := range lines {
-				if keyword == "" || containsIgnoreCase(line, keyword) {
+				matchers := m.Match(line, keyword)
+				if keyword == "" || len(matchers) > 0 {
 					filtered = append(filtered, line)
+					linesMatchs[line] = matchers
 				}
 			}
+			sort.SliceStable(filtered, func(i, j int) bool {
+				return linesMatchs[filtered[i]].MatchCount() > linesMatchs[filtered[j]].MatchCount()
+			})
 			filterCache[keyword] = filtered
 			return filtered
 		}
@@ -228,10 +235,4 @@ func putStrHighlight(s tcell.Screen, x, y int, line, keyword string, style tcell
 		i++
 		pos++
 	}
-}
-
-// Case-insensitive version of strings.Contains
-func containsIgnoreCase(s, substr string) bool {
-	// Convert both strings to lower case and use strings.Contains
-	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
