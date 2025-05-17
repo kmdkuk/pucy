@@ -69,8 +69,10 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: fmt vet lint ## Run lint & test.
+test: fmt vet lint ginkgo ## Run lint & test.
 	go test ./...
+	$(GINKGO) -p -v -r --trace --cover --coverprofile=coverage.out
+	go tool cover -html=coverage.out -o coverage.html
 
 .PHONY: lint
 lint: staticcheck golangci-lint ## Run lint
@@ -117,3 +119,9 @@ golangci-lint:
 	set -e ;\
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell dirname $(GOLANGCI_LINT)) $(GOLANGCI_LINT_VERSION) ;\
 	}
+
+GINKGO ?= $(BIN_DIR)/ginkgo
+.PHONY: ginkgo
+ginkgo: $(GINKGO)
+$(GINKGO): $(BIN_DIR)
+	test -s $(GINKGO) || GOBIN=$(BIN_DIR) go install github.com/onsi/ginkgo/v2/ginkgo@latest
