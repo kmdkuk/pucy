@@ -21,7 +21,7 @@ go install github.com/kmdkuk/pucy
 ```sh
 ghq list | pucy
 ```
-![pucy-example](./pucy-example.gif)
+![Terminal usage demo of pucy](./pucy-example.gif)
 
 Use arrow keys to navigate, type to filter, and press Enter to select.
 
