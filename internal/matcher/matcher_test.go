@@ -43,4 +43,18 @@ var _ = Describe("Matcher", func() {
 		result := m.Match("foobar", "")
 		Expect(len(result)).To(Equal(0))
 	})
+
+	It("should match multiple keywords separated by space", func() {
+		// "foo/bar" with query "fo ba" should match "fo" and "ba"
+		result := m.Match("foo/bar", "fo ba")
+		// Count matched runes
+		count := 0
+		for i := 0; i < len("foo/bar"); i++ {
+			if result.IsMatch(i) {
+				count++
+			}
+		}
+		// "fo" (2 runes) and "ba" (2 runes) should be matched
+		Expect(count).To(Equal(4))
+	})
 })
