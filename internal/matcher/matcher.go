@@ -40,7 +40,14 @@ func (m *DefaultMatcher) Match(line string, keyword string) Matches {
 	keywordRunes := []rune(lowerKeyword)
 
 	for i := 0; i <= len(lineRunes)-len(keywordRunes); i++ {
-		if string(lineRunes[i:i+len(keywordRunes)]) == string(keywordRunes) {
+		match := true
+		for j := 0; j < len(keywordRunes); j++ {
+			if lineRunes[i+j] != keywordRunes[j] {
+				match = false
+				break
+			}
+		}
+		if match {
 			matches = append(matches, Match{first: i, last: i + len(keywordRunes)})
 		}
 	}
