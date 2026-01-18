@@ -9,7 +9,8 @@ import (
 	"os"
 	"sort"
 
-	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v3"
+	"github.com/gdamore/tcell/v3/color"
 	"github.com/kmdkuk/pucy/internal/matcher"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -101,7 +102,7 @@ to quickly create a Cobra application.`,
 			for i := offset; i < len(filtered) && y < height; i++ {
 				style := tcell.StyleDefault
 				if i == selected {
-					style = style.Background(tcell.ColorBlue).Foreground(tcell.ColorWhite)
+					style = style.Background(color.Blue).Foreground(color.White)
 				}
 				putStrHighlight(screen, 0, y, filtered[i], keyword, style)
 				y++
@@ -111,8 +112,11 @@ to quickly create a Cobra application.`,
 
 		draw()
 		for {
-			ev := screen.PollEvent()
+			ev := <-screen.EventQ()
 			switch tev := ev.(type) {
+			case *tcell.EventResize:
+				screen.Sync()
+				draw()
 			case *tcell.EventKey:
 				switch tev.Key() {
 				case tcell.KeyEsc, tcell.KeyCtrlC:
@@ -141,8 +145,8 @@ to quickly create a Cobra application.`,
 						selected++
 					}
 				default:
-					if tev.Rune() != 0 {
-						keyword += string(tev.Rune())
+					if tev.Str() != "" {
+						keyword += tev.Str()
 						selected = 0
 						offset = 0
 						// Optionally, you can clear the cache here if you want to limit memory usage
@@ -228,7 +232,7 @@ func putStrHighlight(s tcell.Screen, x, y int, line, keyword string, style tcell
 	pos := 0
 	for pos < len(runes) {
 		if matches.IsMatch(pos) {
-			s.SetContent(x+i, y, runes[pos], nil, style.Foreground(tcell.ColorRed))
+			s.SetContent(x+i, y, runes[pos], nil, style.Foreground(color.Red))
 		} else {
 			s.SetContent(x+i, y, runes[pos], nil, style)
 		}
