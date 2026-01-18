@@ -1,9 +1,8 @@
 module github.com/kmdkuk/pucy
 
-go 1.24.2
+go 1.25.6
 
 require (
-	github.com/gdamore/tcell/v2 v2.13.7
 	github.com/gdamore/tcell/v3 v3.1.1
 	github.com/onsi/ginkgo/v2 v2.27.5
 	github.com/onsi/gomega v1.39.0
