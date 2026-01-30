@@ -4,7 +4,7 @@ go 1.25.6
 
 require (
 	github.com/gdamore/tcell/v3 v3.1.2
-	github.com/onsi/ginkgo/v2 v2.28.0
+	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
